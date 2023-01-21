@@ -23,14 +23,11 @@ public class RecScript : MonoBehaviour
     [SerializeField] private float snap;
     [SerializeField] private float returnSpeed;
 
-
-    // Start is called before the first frame update
     void Start()
     {
         
     }
 
-    // Update is called once per frame
     void Update()
     {
         takeAim = ADSRecFunc.isAim;
