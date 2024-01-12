@@ -18,6 +18,8 @@ public class GunsCtrl : MonoBehaviour
     [SerializeField] private bool boltLockAtEnd = false;
     [SerializeField] private bool saveOneBullet = false;
     [SerializeField] private bool isSemi = false;
+    private float timeBetweenShot = 0.05f;
+    private float lastShotTime = 0f;
     private bool reloading = false;
     public bool isAim = false;
     //private bool isEmpty = false;
@@ -25,9 +27,14 @@ public class GunsCtrl : MonoBehaviour
     private float fAutoROF;
     [SerializeField] private float loadTime = 1f;
     [SerializeField] private float caseVelo = 150f;
+    public float fSemiInt;
+    public float fAutoInt;
     float fSpent = 0.0f;
     int fHash;
     bool Inspecting = false;
+
+    [Header("Case Settings")]
+    public bool isFlop;
 
     [Header("Reference")]
     public Animator gAnim;
@@ -45,15 +52,15 @@ public class GunsCtrl : MonoBehaviour
     public Transform muzzle;
     public Transform receiver;
     public RecScript recoil;
+    public Transform fSelectionRot;
 
 
-    // Start is called before the first frame update
     void Start()
     {
         currentMag = magLimit;
         InstantiateAudio(fireSFX);
         fAutoROF = rateFire;
-        fHash = Animator.StringToHash("FireSpent");
+        //fHash = Animator.StringToHash("FireSpent");
     }
 
     private void InstantiateAudio(AudioClip clip)
@@ -96,7 +103,6 @@ public class GunsCtrl : MonoBehaviour
     {
         additionalSC2.Play();
     }
-    // Update is called once per frame
     void Update()
     {
         if (reloading)
@@ -104,70 +110,32 @@ public class GunsCtrl : MonoBehaviour
             return;
         }
 
-        if (isSemi)
+        /*if (isSemi)
         {
             rateFire = 2f;
         }
         else
         {
             rateFire = fAutoROF;
+        }*/
+
+        if(isSemi)
+        {
+            if(Input.GetButtonDown("Fire1") && Time.time >= lastShotTime + timeBetweenShot) 
+            {
+                lastShotTime = Time.time;
+                Fire();
+            }
+        }
+        else
+        {
+            
+            if(Input.GetButton("Fire1") && Time.time >= nextTimeToFire)
+            {
+                Fire();
+            }
         }
 
-        if(Input.GetButton("Fire1") && Time.time >= nextTimeToFire)
-        {
-            if(currentMag > 0)
-            {
-                nextTimeToFire = Time.time + 1f / rateFire;
-                currentMag--;
-                ShellCasing();
-                playSound();
-                MuzzleFlash();
-                recoil.RecFire();
-                if (!isAim)
-                {
-                    gAnim.CrossFadeInFixedTime("Fire", 0.1f);
-                    /*if(fSpent == 0.1f)
-                    {
-                        gAnim.CrossFadeInFixedTime("Fire_bM1", 0.1f);
-                    }*/
-                    if(boltLockAtEnd && currentMag < 1)
-                    {
-                        gAnim.CrossFadeInFixedTime("Fire_end", 0.1f);
-                    }
-                }
-                else if (isAim)
-                {
-                    gAnim.CrossFadeInFixedTime("ADSFire", 0.1f);
-                    if(boltLockAtEnd && currentMag < 1)
-                    {
-                        gAnim.CrossFadeInFixedTime("ADSFire_end", 0.1f);
-                    }
-                }
-                if(currentMag > 12)
-                {
-                    fSpent = 0.0f;
-                    
-                }
-                else if(currentMag < 12)
-                {
-                    fSpent = 0.1f;
-                }
-                else if(currentMag < 10)
-                {
-                    fSpent = 0.2f;
-                }
-                else if(currentMag < 9)
-                {
-                    fSpent = 0.3f;
-                }
-                gAnim.SetFloat(fHash, fSpent);
-            }
-            else if(currentMag == 0)
-            {
-                StartCoroutine(Reload());
-            }
-            
-        }
         if (Input.GetKey(KeyCode.R))
         {
             StartCoroutine(DumpLoad());
@@ -199,6 +167,28 @@ public class GunsCtrl : MonoBehaviour
         {
             Inspecting = false;
         }
+
+        if(Input.GetKey(KeyCode.T))
+        {
+            if(isSemi)
+            {
+                if(isAim)
+                {
+                    gAnim.SetBool("ADSSToA", true);
+                }
+                gAnim.SetBool("SToA", true);
+            }
+            else
+            {
+                if(isAim)
+                {
+                    gAnim.SetBool("ADSAToS", true);
+                }
+                gAnim.SetBool("AToS", true);
+            }
+            
+        }
+
         if(Inspecting)
         {
             gAnim.SetBool("Inspect", true);
@@ -209,6 +199,62 @@ public class GunsCtrl : MonoBehaviour
         }
     }
 
+
+    void Fire()
+    {
+        if(currentMag > 0)
+        {
+            nextTimeToFire = Time.time + 1f / rateFire;
+            currentMag--;
+            ShellCasing();
+            playSound();
+            MuzzleFlash();
+            recoil.RecFire();
+            if (!isAim)
+            {
+                gAnim.CrossFadeInFixedTime("Fire", 0.1f);
+                /*if(fSpent == 0.1f)
+                {
+                    gAnim.CrossFadeInFixedTime("Fire_bM1", 0.1f);
+                }*/
+                if(boltLockAtEnd && currentMag < 1)
+                {
+                    gAnim.CrossFadeInFixedTime("Fire End", 0.1f);
+                }
+            }
+            else if (isAim)
+            {
+                gAnim.CrossFadeInFixedTime("ADSFire", 0.1f);
+                if(boltLockAtEnd && currentMag < 1)
+                {
+                    gAnim.CrossFadeInFixedTime("ADSFire End", 0.1f);
+                }
+            }
+            if(currentMag > 12)
+            {
+                fSpent = 0.0f;
+
+            }
+            else if(currentMag < 12)
+            {
+                fSpent = 0.1f;
+            }
+            else if(currentMag < 10)
+            {
+                fSpent = 0.2f;
+            }
+            else if(currentMag < 9)
+            {
+                fSpent = 0.3f;
+            }
+            //gAnim.SetFloat(fHash, fSpent);
+        }
+        else if(currentMag == 0)
+        {
+            StartCoroutine(Reload());
+        }
+
+    }
     void ADS()
     {
         isAim = true;
@@ -223,10 +269,21 @@ public class GunsCtrl : MonoBehaviour
 
     void ShellCasing()
     {
-        Rigidbody cartridgePhysics;
-        cartridgePhysics = Instantiate(spentCase, receiver.position, Quaternion.Euler(90, Random.Range(0, 90), 0)) as Rigidbody;
-        cartridgePhysics.AddForce(receiver.right * caseVelo);
-        receiver.localRotation = Quaternion.Euler(0, 0, Random.Range(0, 30));
+        if(!isFlop)
+        {
+            Rigidbody cartridgePhysics;
+            cartridgePhysics = Instantiate(spentCase, receiver.position, Quaternion.Euler(90, Random.Range(0, 90), 180)) as Rigidbody;
+            cartridgePhysics.AddForce(receiver.right * caseVelo);
+            receiver.localRotation = Quaternion.Euler(0, Random.Range(-15, 15), Random.Range(0, 30));
+        }
+        else
+        {
+            Rigidbody cartridgePhysics;
+            cartridgePhysics = Instantiate(spentCase, receiver.position, Quaternion.Euler(0, Random.Range(0, 90), 180)) as Rigidbody;
+            cartridgePhysics.AddForce(receiver.right * caseVelo);
+            receiver.localRotation = Quaternion.Euler(0, Random.Range(-15, 15), Random.Range(0, 30));
+        }
+       
     }
 
     void MuzzleFlash()
@@ -239,31 +296,66 @@ public class GunsCtrl : MonoBehaviour
 
     IEnumerator Reload()
     {
-        gAnim.SetBool("Reload", true);
-        gAnim.SetBool("ADS", false);
-        isAim = false;
-        fSpent = 0.0f;
-        yield return new WaitForSeconds(.1f);
-        reloading = true;
-        yield return new WaitForSeconds(loadTime - .25f);
-        reloading = false;
-        currentMag = magLimit;
-        gAnim.SetBool("Reload", false);
+        if(isAim)
+        {
+            gAnim.SetBool("ADSReload", true);
+            //gAnim.SetBool("ADS", false);
+            //isAim = false;
+            fSpent = 0.0f;
+            yield return new WaitForSeconds(.1f);
+            reloading = true;
+            yield return new WaitForSeconds(loadTime - .25f);
+            reloading = false;
+            currentMag = magLimit;
+            gAnim.SetBool("ADSReload", false);
+        }
+        else
+        {
+            gAnim.SetBool("Reload", true);
+            //gAnim.SetBool("ADS", false);
+            //isAim = false;
+            fSpent = 0.0f;
+            yield return new WaitForSeconds(.1f);
+            reloading = true;
+            yield return new WaitForSeconds(loadTime - .25f);
+            reloading = false;
+            currentMag = magLimit;
+            gAnim.SetBool("Reload", false);
+        }
+        
     }
 
     IEnumerator DumpLoad()
     {
-        gAnim.SetBool("DumpLoad", true);
-        yield return new WaitForSeconds(.1f);
-        reloading = true;
-        yield return new WaitForSeconds(loadTime - .25f);
-        reloading = false;
-        currentMag = magLimit;
-        if (saveOneBullet)
+        if(isAim)
         {
-            currentMag = magLimit + 1;
+            gAnim.SetBool("ADSDumpLoad", true);
+            yield return new WaitForSeconds(.1f);
+            reloading = true;
+            yield return new WaitForSeconds(loadTime - .25f);
+            reloading = false;
+            currentMag = magLimit;
+            if (saveOneBullet)
+            {
+                currentMag = magLimit + 1;
+            }
+            gAnim.SetBool("ADSDumpLoad", false);
         }
-        gAnim.SetBool("DumpLoad", false);
+        else
+        {
+            gAnim.SetBool("DumpLoad", true);
+            yield return new WaitForSeconds(.1f);
+            reloading = true;
+            yield return new WaitForSeconds(loadTime - .25f);
+            reloading = false;
+            currentMag = magLimit;
+            if (saveOneBullet)
+            {
+                currentMag = magLimit + 1;
+            }
+            gAnim.SetBool("DumpLoad", false);
+        }
+
     }
 
     IEnumerator FastLoad()
@@ -279,5 +371,23 @@ public class GunsCtrl : MonoBehaviour
             currentMag = magLimit + 1;
         }
         gAnim.SetBool("FastLoad", false);
+    }
+
+    public void FSChange_AToS()
+    {
+        fSelectionRot.localRotation = Quaternion.Euler(fSemiInt, 0, 0);
+        isSemi = true;
+        gAnim.SetBool("AToS", false);
+        gAnim.SetBool("ADSAToS", false);
+        Debug.Log("Changed to Semi");
+    }
+
+    public void FSChange_SToA()
+    {
+        fSelectionRot.localRotation = Quaternion.Euler(fAutoInt, 0, 0);
+        isSemi = false;
+        gAnim.SetBool("SToA", false);
+        gAnim.SetBool("ADSSToA", false);
+        Debug.Log("Changed to Auto");
     }
 }
